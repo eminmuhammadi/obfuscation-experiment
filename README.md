@@ -41,7 +41,7 @@ Fetching => https://untrust.localhost/verify?key=d5a2858c-d045-4712-afa6-db961f0
 Application has been started, your key is d5a2858c-d045-4712-afa6-db961f0d60a6
 ```
 
-## Obfuscated Application
+### Obfuscated Application
 ```bash
 $ ./app-obfuscated.exe
 Fetching => https://example.localhost/verify?key=d5a2858c-d045-4712-afa6-db961f0d60a6d5a2858c-d045-4712-afa6-db961f0d60a6
