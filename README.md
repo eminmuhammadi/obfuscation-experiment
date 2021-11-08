@@ -6,6 +6,7 @@
 
 - IDA Pro Version 7.6.210427
 - Python 3.9.5
+- go1.17 windows/amd64
 
 ## Preconditions
 
