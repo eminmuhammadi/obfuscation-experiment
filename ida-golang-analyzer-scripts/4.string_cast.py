@@ -1,15 +1,3 @@
-'''
-Fix string casts by reference to the loading functions
-Refactored from Tim Strazzere's GolangLoaderAssist
-
-Fixed:
->Added routine to undefine strings that are too long and thereby suspect before attempting to create new strings based on string loading routines
->Added logic to undefine items in the target offset when retrying string casting, drastically better results
->Added sanity checks for intended string address
-
-Needs:
->Better string load heuristics
-'''
 from idautils import *
 from idc import *
 import idaapi
@@ -17,41 +5,39 @@ import ida_bytes
 import idautils
 import ida_segment
 import sys
-import string
 
-#
 # Constants
-#
-DEBUG = False 
+DEBUG = False
 
-#
+
 # Utility functions
-#
 def info(formatted_string):
     print(formatted_string)
 
+
 def error(formatted_string):
     print('ERROR - %s' % formatted_string)
+
 
 def debug(formatted_string):
     if DEBUG:
         print('DEBUG - %s' % formatted_string)
 
-#
-# Function defining methods
-#
 
+# Function defining methods
 def get_text_seg():
     #   .text found in PE & ELF binaries, __text found in macho binaries
     return _get_seg(['.text', '__text'])
+
 
 def get_gopclntab_seg():
     seg = _get_seg_from_rdata(['runtime.pclntab'])
 
     if seg is None:
-        seg =  _get_seg(['.gopclntab', '__gopclntab'])
+        seg = _get_seg(['.gopclntab', '__gopclntab'])
 
     return seg
+
 
 def _get_seg(possible_seg_names):
     for seg_name in possible_seg_names:
@@ -61,6 +47,7 @@ def _get_seg(possible_seg_names):
 
     return None
 
+
 def _get_seg_from_rdata(possible_seg_names):
     for seg_name in possible_seg_names:
         for ea, name in Names():
@@ -69,10 +56,11 @@ def _get_seg_from_rdata(possible_seg_names):
 
     return None
 
-#Undefine obviously bad string definitions:
+# Undefine obviously bad string definitions:
 def undefine_string(ea):
     ida_bytes.del_items(ea)
-    debug("Deleted string @ offset %s" % hex(ea))   
+    debug("Deleted string @ offset %s" % hex(ea))
+
 
 def undefine_long_strings(len_boundary):
     counter = 0
@@ -130,6 +118,8 @@ VALID_REGS = ['eax', 'ebx', 'ebp', 'rax', 'rcx', 'r10', 'rdx']
 VALID_DEST = ['esp', 'eax', 'ecx', 'edx', 'rsp']
 
 # JAG-S (10.10.2021): This logic is from GolangLoaderAssist. Desperately needs to be broken up, refactored, and improved <--- HELP HERE
+
+
 def is_string_load(addr):
     patterns = []
     # Check for first parts instruction and what it is loading -- also ignore function pointers we may have renamed
@@ -146,7 +136,8 @@ def is_string_load(addr):
         # Check for second part
         addr_2 = ida_search.find_code(addr, SEARCH_DOWN)
         try:
-            dest_reg = idc.print_operand(addr_2, 0)[idc.print_operand(addr_2, 0).index('[') + 1:idc.print_operand(addr_2, 0).index('[') + 4]
+            dest_reg = idc.print_operand(addr_2, 0)[idc.print_operand(
+                addr_2, 0).index('[') + 1:idc.print_operand(addr_2, 0).index('[') + 4]
         except ValueError:
             return False
         if idc.print_insn_mnem(addr_2) == 'mov' and dest_reg in VALID_DEST and ('[%s' % dest_reg) in idc.print_operand(addr_2, 0) and idc.print_operand(addr_2, 1) == from_reg:
@@ -162,6 +153,7 @@ def is_string_load(addr):
                     return False
 
     return False
+
 
 def create_string(addr, string_len):
     if get_segm_name(addr) is None:
@@ -181,9 +173,11 @@ def create_string(addr, string_len):
         undefine_string(addr)
         if ida_bytes.create_strlit(addr, string_len, STRTYPE_C):
             return True
-        debug('Unable to make a string @ 0x%x with length of %d' % (addr, string_len))
+        debug('Unable to make a string @ 0x%x with length of %d' %
+              (addr, string_len))
 
     return False
+
 
 def create_offset(addr):
     if ida_offset.op_plain_offset(addr, 1, 0):
@@ -192,6 +186,7 @@ def create_offset(addr):
         debug('Unable to make an offset for string @ 0x%x ' % addr)
 
     return False
+
 
 def strings_init():
     strings_added = 0
@@ -214,14 +209,17 @@ def strings_init():
             error('Unable to find good end for the function %s' % name)
             pass
 
-        debug('Found function %s starting/ending @ 0x%x 0x%x' %  (name, addr, end_addr))
+        debug('Found function %s starting/ending @ 0x%x 0x%x' %
+              (name, addr, end_addr))
 
         while addr <= end_addr:
             if is_string_load(addr):
                 if 'rodata' not in get_segm_name(addr) and 'text' not in get_segm_name(addr):
-                    debug('Should a string be in the %s section?' % get_segm_name(addr))
+                    debug('Should a string be in the %s section?' %
+                          get_segm_name(addr))
                 string_addr = idc.get_operand_value(addr, 1)
-                addr_3 = ida_search.find_code(ida_search.find_code(addr, SEARCH_DOWN), SEARCH_DOWN)
+                addr_3 = ida_search.find_code(
+                    ida_search.find_code(addr, SEARCH_DOWN), SEARCH_DOWN)
                 string_len = idc.get_operand_value(addr_3, 1)
                 if create_string(string_addr, string_len):
                     if create_offset(addr):
@@ -247,14 +245,16 @@ def strings_init():
             if create_offset(instr_addr):
                 strings_added += 1
         else:
-            error('FAILED-RETRY : Unable to make a string @ 0x%x with length of %d for usage in function @ 0x%x' % (string_addr, string_len, instr_addr))
+            error('FAILED-RETRY : Unable to make a string @ 0x%x with length of %d for usage in function @ 0x%x' %
+                  (string_addr, string_len, instr_addr))
     return strings_added
 
-def main():
-# Attempt to find all string loading idioms
 
-    #Prep
-    undefinedCount = undefine_long_strings(50) #Feel free to fiddle with len
+def main():
+    # Attempt to find all string loading idioms
+
+    # Prep
+    undefinedCount = undefine_long_strings(50)  # Feel free to fiddle with len
     info('Undefined %d suspected bad strings' % undefinedCount)
     strings_added = strings_init()
     info('Found and successfully created %d strings!' % strings_added)
@@ -262,4 +262,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

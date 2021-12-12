@@ -1,6 +1,8 @@
 # Obfuscation Experiment
 This project is an experiment in obfuscating a simple application written in Golang.
 
+Code obfuscation for software security, Emin Muhammadi: [paper.pdf](docs/paper.pdf)
+
 ## Scenario
 Software Development Company releases a paid-software. This software should be accessed by only and only if user
 has a valid license key. When app starts, it should ask user to enter license key. If user enters valid license key,
@@ -37,9 +39,6 @@ From this point, the intruders can use the license key to obtain the user's deta
 - IDA Pro Version 7.6.210427
 - Python 3.9.5
 - go1.17 windows/amd64
-
-## Preconditions
-To be added later.
 
 ## Obfuscation
 Obfuscation means to make something difficult to understand. Programming code is often obfuscated to protect intellectual property or trade secrets, and to prevent an attacker from reverse engineering a proprietary software program.

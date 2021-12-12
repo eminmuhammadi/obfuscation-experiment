@@ -1,6 +1,3 @@
-#Recreate pcln table in for stripped Go samples pre-compiler version 1.16
-#Bruteforce function discovery and recreate .gopclntab segment
-#(Most useful pre IDA 7.6)
 import idc
 import idautils
 import idaapi
@@ -21,7 +18,8 @@ except:
     is_be = info.mf
 
 lookup = "FF FF FF FB 00 00" if is_be else "FB FF FF FF 00 00"
-v116magic = "FF FF FF FA 00 00" if is_be else "FA FF FF FF 00 00" #0xFFFFFFFA #Needs testing
+# 0xFFFFFFFA # Needs testing
+v116magic = "FF FF FF FA 00 00" if is_be else "FA FF FF FF 00 00"
 
 if info.is_32bit():
     get_content = ida_bytes.get_dword
